@@ -34,3 +34,87 @@ az network vnet subnet create \
   --vnet-name logistics-vnet \
   --name data-subnet \
   --address-prefix 10.0.2.0/24
+
+# Step 5: Create NSGs
+
+# Web NSG - allows HTTP, HTTPS, SSH from internet
+az network nsg create \
+  --resource-group $RESOURCE_GROUP \
+  --name web-nsg \
+  --tags Environment=Development
+
+az network nsg rule create \
+  --resource-group $RESOURCE_GROUP \
+  --nsg-name web-nsg \
+  --name AllowHTTP \
+  --priority 100 \
+  --access Allow \
+  --direction Inbound \
+  --protocol Tcp \
+  --source-address-prefixes Internet \
+  --destination-port-ranges 80
+
+az network nsg rule create \
+  --resource-group $RESOURCE_GROUP \
+  --nsg-name web-nsg \
+  --name AllowHTTPS \
+  --priority 110 \
+  --access Allow \
+  --direction Inbound \
+  --protocol Tcp \
+  --source-address-prefixes Internet \
+  --destination-port-ranges 443
+
+az network nsg rule create \
+  --resource-group $RESOURCE_GROUP \
+  --nsg-name web-nsg \
+  --name AllowSSH \
+  --priority 120 \
+  --access Allow \
+  --direction Inbound \
+  --protocol Tcp \
+  --source-address-prefixes Internet \
+  --destination-port-ranges 22
+
+# Data NSG - allows traffic ONLY from web-subnet
+az network nsg create \
+  --resource-group $RESOURCE_GROUP \
+  --name data-nsg \
+  --tags Environment=Development
+
+az network nsg rule create \
+  --resource-group $RESOURCE_GROUP \
+  --nsg-name data-nsg \
+  --name AllowFromWebSubnet \
+  --priority 100 \
+  --access Allow \
+  --direction Inbound \
+  --protocol "*" \
+  --source-address-prefixes 10.0.1.0/24 \
+  --destination-port-ranges "*"
+
+az network nsg rule create \
+  --resource-group $RESOURCE_GROUP \
+  --nsg-name data-nsg \
+  --name DenyAllOther \
+  --priority 200 \
+  --access Deny \
+  --direction Inbound \
+  --protocol "*" \
+  --source-address-prefixes "*" \
+  --destination-port-ranges "*"
+
+# Associate NSGs to Subnets
+VNET_NAME="logistics-vnet"
+
+az network vnet subnet update \
+  --resource-group $RESOURCE_GROUP \
+  --vnet-name $VNET_NAME \
+  --name web-subnet \
+  --network-security-group web-nsg
+
+az network vnet subnet update \
+  --resource-group $RESOURCE_GROUP \
+  --vnet-name $VNET_NAME \
+  --name data-subnet \
+  --network-security-group data-nsg
