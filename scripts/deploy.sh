@@ -3,7 +3,7 @@
 
 # Variables - set these before running
 RESOURCE_GROUP="logistics-demo-rg"
-LOCATION="westeurope"
+LOCATION="northeurope"
 SUBSCRIPTION_ID=$(az account show --query id -o tsv)
 
 # Step 2: Create Resource Group with Tags
@@ -18,7 +18,7 @@ az policy assignment create \
   --display-name "Require Environment Tag" \
   --policy "871b6d14-10aa-478d-b590-94f262ecfa99" \
   --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP" \
-  --params scripts/policy-params.json
+  --params '{"tagName":{"value":"Environment"}}'
 
 # Step 4: Create VNet + Subnets
 az network vnet create \
@@ -139,7 +139,7 @@ az storage container create \
 
 
 # Step 7: Create Key Vault + Secret
-KEYVAULT_NAME="logistics-kv-2026"
+KEYVAULT_NAME="logistics-kv2-2026"
 
 az keyvault create \
   --resource-group $RESOURCE_GROUP \
@@ -148,14 +148,42 @@ az keyvault create \
   --enable-rbac-authorization true \
   --tags Environment=Development
 
-az keyvault secret set \
-  --vault-name $KEYVAULT_NAME \
-  --name "db-connection-string" \
-  --value "<REPLACE_WITH_ACTUAL_SECRET>"
 
 # Assign Key Vault Secrets Officer to deployer
 USER_ID=$(az ad signed-in-user show --query id -o tsv)
 az role assignment create \
   --role "Key Vault Secrets Officer" \
   --assignee $USER_ID \
+  --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.KeyVault/vaults/$KEYVAULT_NAME"
+
+az keyvault secret set \
+  --vault-name $KEYVAULT_NAME \
+  --name "db-connection-string" \
+  --value "<REPLACE_WITH_ACTUAL_SECRET>"
+
+
+# Step 8: Create VM with Managed Identity + Nginx
+az vm create \
+  --resource-group $RESOURCE_GROUP \
+  --name logistics-vm \
+  --image Ubuntu2204 \
+  --size Standard_D2s_v3 \
+  --vnet-name $VNET_NAME \
+  --subnet web-subnet \
+  --nsg web-nsg \
+  --admin-username azureuser \
+  --generate-ssh-keys \
+  --assign-identity \
+  --custom-data scripts/cloud-init.yaml \
+  --tags Environment=Development
+
+# Grant VM access to Key Vault secrets
+VM_IDENTITY=$(az vm show \
+  --resource-group $RESOURCE_GROUP \
+  --name logistics-vm \
+  --query identity.principalId -o tsv)
+
+az role assignment create \
+  --role "Key Vault Secrets User" \
+  --assignee $VM_IDENTITY \
   --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.KeyVault/vaults/$KEYVAULT_NAME"

@@ -1,0 +1,8 @@
+#cloud-config
+package_upgrade: true
+packages:
+  - nginx
+runcmd:
+  - systemctl enable nginx
+  - systemctl start nginx
+  - echo "<h1>Logistics Demo - Deployed by V</h1>" > /var/www/html/index.html
