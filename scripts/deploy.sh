@@ -118,3 +118,20 @@ az network vnet subnet update \
   --vnet-name $VNET_NAME \
   --name data-subnet \
   --network-security-group data-nsg
+
+# Step 6: Create Storage Account + Blob Container
+STORAGE_NAME="logisticsdemosa2026"
+
+az storage account create \
+  --resource-group $RESOURCE_GROUP \
+  --name $STORAGE_NAME \
+  --location $LOCATION \
+  --sku Standard_LRS \
+  --access-tier Hot \
+  --https-only True \
+  --tags Environment=Development
+
+az storage container create \
+  --account-name $STORAGE_NAME \
+  --name static-files \
+  --auth-mode login
