@@ -193,3 +193,47 @@ az role assignment create \
 # Run manually
 # az ad user create --display-name "Test Reader" --user-principal-name <YOUR_UPN> --password "<PASSWORD>"
 # az role assignment create --role "Reader" --assignee <USER_ID> --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP"
+
+
+# Step 10: Azure Monitor + Log Analytics + Alert
+az monitor log-analytics workspace create \
+  --resource-group $RESOURCE_GROUP \
+  --workspace-name logistics-law \
+  --location $LOCATION \
+  --tags Environment=Development
+
+VM_ID=$(az vm show \
+  --resource-group $RESOURCE_GROUP \
+  --name logistics-vm \
+  --query id -o tsv)
+
+WORKSPACE_ID=$(az monitor log-analytics workspace show \
+  --resource-group $RESOURCE_GROUP \
+  --workspace-name logistics-law \
+  --query id -o tsv)
+
+az monitor diagnostic-settings create \
+  --name "vm-diagnostics" \
+  --resource $VM_ID \
+  --workspace $WORKSPACE_ID \
+  --metrics '[{"category":"AllMetrics","enabled":true}]'
+
+# Action Group - run manually 
+# az monitor action-group create --resource-group $RESOURCE_GROUP --name "logistics-alerts-ag" --short-name "LogAlerts" --action email devops-team <YOUR_EMAIL>
+
+ACTION_GROUP_ID=$(az monitor action-group show \
+  --resource-group $RESOURCE_GROUP \
+  --name logistics-alerts-ag \
+  --query id -o tsv)
+
+az monitor metrics alert create \
+  --resource-group $RESOURCE_GROUP \
+  --name "high-cpu-alert" \
+  --description "Alert when CPU exceeds 80%" \
+  --scopes $VM_ID \
+  --condition "avg Percentage CPU > 80" \
+  --window-size 5m \
+  --evaluation-frequency 1m \
+  --severity 2 \
+  --action $ACTION_GROUP_ID \
+  --tags Environment=Development
