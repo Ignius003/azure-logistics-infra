@@ -135,3 +135,27 @@ az storage container create \
   --account-name $STORAGE_NAME \
   --name static-files \
   --auth-mode login
+
+
+
+# Step 7: Create Key Vault + Secret
+KEYVAULT_NAME="logistics-kv-2026"
+
+az keyvault create \
+  --resource-group $RESOURCE_GROUP \
+  --name $KEYVAULT_NAME \
+  --location $LOCATION \
+  --enable-rbac-authorization true \
+  --tags Environment=Development
+
+az keyvault secret set \
+  --vault-name $KEYVAULT_NAME \
+  --name "db-connection-string" \
+  --value "<REPLACE_WITH_ACTUAL_SECRET>"
+
+# Assign Key Vault Secrets Officer to deployer
+USER_ID=$(az ad signed-in-user show --query id -o tsv)
+az role assignment create \
+  --role "Key Vault Secrets Officer" \
+  --assignee $USER_ID \
+  --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.KeyVault/vaults/$KEYVAULT_NAME"
