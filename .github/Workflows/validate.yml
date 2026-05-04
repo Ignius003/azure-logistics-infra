@@ -1,0 +1,31 @@
+name: Validate Azure Infrastructure
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Validate Bicep Template
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Azure CLI
+        run: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+      - name: Install Bicep
+        run: az bicep install
+
+      - name: Build Bicep template
+        run: az bicep build --file arm-templates/main.bicep
+
+      - name: Lint check
+        run: |
+          echo "Checking for common issues..."
+          az bicep lint --file arm-templates/main.bicep || true
