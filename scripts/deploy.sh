@@ -187,3 +187,9 @@ az role assignment create \
   --role "Key Vault Secrets User" \
   --assignee $VM_IDENTITY \
   --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.KeyVault/vaults/$KEYVAULT_NAME"
+
+
+# Step 9: RBAC - Create test user with Reader role
+# Run manually
+# az ad user create --display-name "Test Reader" --user-principal-name <YOUR_UPN> --password "<PASSWORD>"
+# az role assignment create --role "Reader" --assignee <USER_ID> --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP"
