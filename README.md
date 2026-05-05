@@ -119,6 +119,3 @@ Future enhancement: Add CD step with Azure credentials for auto-deployment.
 - **RBAC propagation** — Role assignments take up to 5 minutes to propagate; scripts include wait steps
 - **Resource Provider registration** — Services like Key Vault and Monitor require explicit provider registration on new subscriptions
 
-## Author
-
-**Konstantinos Parasis** — DevSecOps Engineer at Deloitte
